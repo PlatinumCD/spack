@@ -44,7 +44,7 @@ def setup_parser(subparser):
     # Set
     set_parser = sp.add_parser("set", help="Set compiler specs")
     set_parser.add_argument("compiler_spec")
-    set_parser.add_argument("variable", choices=['paths', 'flags', 'environment'])
+    set_parser.add_argument("variable", choices=['paths', 'flags'])
     set_parser.add_argument("key")
     set_parser.add_argument("value")
     set_parser.add_argument(
