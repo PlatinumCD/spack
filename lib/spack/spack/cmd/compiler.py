@@ -41,6 +41,20 @@ def setup_parser(subparser):
         help="configuration scope to modify",
     )
 
+    # Set
+    set_parser = sp.add_parser("set", help="Set compiler specs")
+    set_parser.add_argument("compiler_spec")
+    set_parser.add_argument("variable", choices=['paths', 'flags', 'environment'])
+    set_parser.add_argument("key")
+    set_parser.add_argument("value")
+    set_parser.add_argument(
+        "--scope",
+        choices=scopes,
+        metavar=scopes_metavar,
+        default=None,
+        help="configuration scope to modify",
+    )
+
     # Remove
     remove_parser = sp.add_parser("remove", aliases=["rm"], help="remove compiler by spec")
     remove_parser.add_argument(
@@ -101,6 +115,22 @@ def compiler_find(args):
         tty.msg("Found no new compilers")
     tty.msg("Compilers are defined in the following files:")
     colify(spack.compilers.compiler_config_files(), indent=4)
+
+
+def compiler_set(args):
+    compiler_spec = spack.spec.CompilerSpec(args.compiler_spec)
+    candidate_compilers = spack.compilers.compilers_for_spec(compiler_spec, scope=args.scope)
+
+    if not candidate_compilers:
+        tty.die("No compilers match spec %s" % compiler_spec)
+
+    if len(candidate_compilers) > 1:
+        tty.error(f"Multiple compilers match spec {compiler_spec}. Choose one:")
+        colify(reversed(sorted([c.spec.display_str for c in candidate_compilers])), indent=4)
+        sys.exit(1)
+
+    compiler = candidate_compilers[0]
+    spack.compilers.edit_compiler_config(compiler, args.variable, args.key, args.value, scope=args.scope)
 
 
 def compiler_remove(args):
@@ -195,6 +225,7 @@ def compiler(parser, args):
     action = {
         "add": compiler_find,
         "find": compiler_find,
+        "set": compiler_set,
         "remove": compiler_remove,
         "rm": compiler_remove,
         "info": compiler_info,
