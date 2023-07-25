@@ -157,24 +157,26 @@ def add_compilers_to_config(compilers, scope=None, init_config=True):
     spack.config.set("compilers", compiler_config, scope=scope)
 
 
-def edit_compiler_config(compiler, variable, key, value, scope=None):
+def edit_compiler_config(compiler, value, scope=None):
     """Edit compiler config by spec.
 
     Arguments:
         compiler: Compiler object
-        variable: config variable dictionary
-        key: config variable key
         value: config variable value
     """
     remove_compiler_from_config(compiler.spec, scope=scope)
     compiler_config = spack.compilers.get_compiler_config(scope=scope)
-
     compiler_info = _to_dict(compiler)
-    if variable == 'paths':
-        if key not in {'cc', 'cxx', 'f77', 'fc'}:
-            tty.die("'%s' is not a key in paths." % key)
 
-    compiler_info['compiler'][variable][key] = value
+    def update_dict(original_dict, update):
+        for key, value in update.items():
+            if isinstance(value, dict):
+                original_dict[key] = update_dict(original_dict.get(key, {}), value)
+            else:
+                original_dict[key] = value
+        return original_dict
+
+    compiler_info = update_dict(compiler_info, value)
     compiler_config.append(compiler_info)
     spack.config.set("compilers", compiler_config, scope=scope)
 

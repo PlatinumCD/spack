@@ -44,8 +44,6 @@ def setup_parser(subparser):
     # Set
     set_parser = sp.add_parser("set", help="Set compiler specs")
     set_parser.add_argument("compiler_spec")
-    set_parser.add_argument("variable", choices=['paths', 'flags'])
-    set_parser.add_argument("key")
     set_parser.add_argument("value")
     set_parser.add_argument(
         "--scope",
@@ -130,7 +128,21 @@ def compiler_set(args):
         sys.exit(1)
 
     compiler = candidate_compilers[0]
-    spack.compilers.edit_compiler_config(compiler, args.variable, args.key, args.value, scope=args.scope)
+
+    def list_to_nested_dict(lst):
+        if len(lst) == 2:
+            return {lst[0]: lst[1]}
+        return {lst[0]: list_to_nested_dict(lst[1:])}
+
+    try:
+        components = args.value.split(':')
+        if components[0] not in {'paths', 'flags', 'environment'}:
+            tty.die("Only paths/flags/environment variables may be set.")
+        value = {'compiler': list_to_nested_dict(components)}
+    except:
+        tty.die("Unable to parse value %s" % args.value)
+
+    spack.compilers.edit_compiler_config(compiler, value, scope=args.scope)
 
 
 def compiler_remove(args):
